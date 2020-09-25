@@ -55,6 +55,49 @@ def test_import_prepHistFactory_stdout(tmpdir, script_runner):
     assert d
 
 
+def test_import_prepHistFactory_and_fit(tmpdir, script_runner):
+    temp = tmpdir.join("parsed_output.json")
+    command = "pyhf xml2json validation/xmlimport_input/config/example.xml --basedir validation/xmlimport_input/ --output-file {0:s}".format(
+        temp.strpath
+    )
+    ret = script_runner.run(*shlex.split(command))
+
+    command = "pyhf fit {0:s}".format(temp.strpath)
+    ret = script_runner.run(*shlex.split(command))
+
+    assert ret.success
+    ret_json = json.loads(ret.stdout)
+    assert ret_json
+    assert "mle_parameters" in ret_json
+    assert "twice_nll" not in ret_json
+
+    for measurement in [
+        "GaussExample",
+        "GammaExample",
+        "LogNormExample",
+        "ConstExample",
+    ]:
+        command = "pyhf fit {0:s} --value --measurement {1:s}".format(
+            temp.strpath, measurement
+        )
+        ret = script_runner.run(*shlex.split(command))
+
+        assert ret.success
+        ret_json = json.loads(ret.stdout)
+        assert ret_json
+        assert "mle_parameters" in ret_json
+        assert "twice_nll" in ret_json
+
+        tmp_out = tmpdir.join("{0:s}_output.json".format(measurement))
+        # make sure output file works too
+        command += " --output-file {0:s}".format(tmp_out.strpath)
+        ret = script_runner.run(*shlex.split(command))
+        assert ret.success
+        ret_json = json.load(tmp_out)
+        assert "mle_parameters" in ret_json
+        assert "twice_nll" in ret_json
+
+
 def test_import_prepHistFactory_and_cls(tmpdir, script_runner):
     temp = tmpdir.join("parsed_output.json")
     command = 'pyhf xml2json validation/xmlimport_input/config/example.xml --basedir validation/xmlimport_input/ --output-file {0:s}'.format(
@@ -96,9 +139,24 @@ def test_import_prepHistFactory_and_cls(tmpdir, script_runner):
         assert 'CLs_exp' in d
 
 
-@pytest.mark.parametrize(
-    "backend", ["numpy", "tensorflow", "pytorch", "jax"],
-)
+@pytest.mark.parametrize("backend", ["numpy", "tensorflow", "pytorch", "jax"])
+def test_fit_backend_option(tmpdir, script_runner, backend):
+    temp = tmpdir.join("parsed_output.json")
+    command = "pyhf xml2json validation/xmlimport_input/config/example.xml --basedir validation/xmlimport_input/ --output-file {0:s}".format(
+        temp.strpath
+    )
+    ret = script_runner.run(*shlex.split(command))
+
+    command = "pyhf fit --backend {0:s} {1:s}".format(backend, temp.strpath)
+    ret = script_runner.run(*shlex.split(command))
+
+    assert ret.success
+    ret_json = json.loads(ret.stdout)
+    assert ret_json
+    assert "mle_parameters" in ret_json
+
+
+@pytest.mark.parametrize("backend", ["numpy", "tensorflow", "pytorch", "jax"])
 def test_cls_backend_option(tmpdir, script_runner, backend):
     temp = tmpdir.join("parsed_output.json")
     command = 'pyhf xml2json validation/xmlimport_input/config/example.xml --basedir validation/xmlimport_input/ --output-file {0:s}'.format(
@@ -236,11 +294,27 @@ def test_testpoi(tmpdir, script_runner):
     assert len(list(set(results_obs))) == len(pois)
 
 
+@pytest.mark.parametrize("optimizer", ["scipy", "minuit"])
 @pytest.mark.parametrize(
-    'optimizer', ['scipy', 'minuit', 'scipy_optimizer', 'minuit_optimizer']
+    "opts,success", [(["maxiter=1000"], True), (["maxiter=1"], False)]
 )
+def test_fit_optimizer(tmpdir, script_runner, optimizer, opts, success):
+    temp = tmpdir.join("parsed_output.json")
+    command = "pyhf xml2json validation/xmlimport_input/config/example.xml --basedir validation/xmlimport_input/ --output-file {0:s}".format(
+        temp.strpath
+    )
+    ret = script_runner.run(*shlex.split(command))
+
+    optconf = " ".join(f"--optconf {opt}" for opt in opts)
+    command = f"pyhf fit --optimizer {optimizer} {optconf} {temp.strpath}"
+    ret = script_runner.run(*shlex.split(command))
+
+    assert ret.success == success
+
+
+@pytest.mark.parametrize('optimizer', ['scipy', 'minuit'])
 @pytest.mark.parametrize(
-    'opts,success', [(['maxiter=1000'], True), (['maxiter=10'], False)],
+    'opts,success', [(['maxiter=1000'], True), (['maxiter=1'], False)]
 )
 def test_cls_optimizer(tmpdir, script_runner, optimizer, opts, success):
     temp = tmpdir.join("parsed_output.json")
@@ -306,8 +380,8 @@ def test_prune(tmpdir, script_runner):
     )
     ret = script_runner.run(*shlex.split(command))
 
-    command = 'pyhf prune -m staterror_channel1 --measurement GammaExample {0:s}'.format(
-        temp.strpath
+    command = (
+        f"pyhf prune -m staterror_channel1 --measurement GammaExample {temp.strpath:s}"
     )
     ret = script_runner.run(*shlex.split(command))
     assert ret.success
@@ -539,3 +613,30 @@ def test_patchset_apply(datadir, tmpdir, script_runner, output_file):
         "hi": 1.2,
         "lo": 0.8,
     }
+
+
+def test_sort(tmpdir, script_runner):
+    temp = tmpdir.join("parsed_output.json")
+    command = 'pyhf xml2json validation/xmlimport_input/config/example.xml --basedir validation/xmlimport_input/ --output-file {0:s} --hide-progress'.format(
+        temp.strpath
+    )
+    ret = script_runner.run(*shlex.split(command))
+
+    command = f'pyhf sort {temp.strpath}'
+
+    ret = script_runner.run(*shlex.split(command))
+    assert ret.success
+
+
+def test_sort_outfile(tmpdir, script_runner):
+    temp = tmpdir.join("parsed_output.json")
+    command = 'pyhf xml2json validation/xmlimport_input/config/example.xml --basedir validation/xmlimport_input/ --output-file {0:s} --hide-progress'.format(
+        temp.strpath
+    )
+    ret = script_runner.run(*shlex.split(command))
+
+    tempout = tmpdir.join("sort_output.json")
+    command = f'pyhf sort {temp.strpath} --output-file {tempout.strpath}'
+
+    ret = script_runner.run(*shlex.split(command))
+    assert ret.success

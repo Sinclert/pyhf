@@ -27,9 +27,7 @@ def test_scipy_minimize(backend, capsys):
 
 
 @pytest.mark.parametrize('do_stitch', [False, True], ids=['no_stitch', 'do_stitch'])
-@pytest.mark.parametrize(
-    'precision', ['32b', '64b'], ids=['32b', '64b'],
-)
+@pytest.mark.parametrize('precision', ['32b', '64b'], ids=['32b', '64b'])
 @pytest.mark.parametrize(
     'tensorlib',
     [
@@ -141,7 +139,7 @@ def test_optimizer_mixin_extra_kwargs(optimizer):
 @pytest.mark.parametrize(
     'backend,backend_new',
     itertools.permutations(
-        [('numpy', False), ('pytorch', True), ('tensorflow', True), ('jax', True),], 2
+        [('numpy', False), ('pytorch', True), ('tensorflow', True), ('jax', True)], 2
     ),
     ids=lambda pair: f'{pair[0]}',
 )
@@ -436,3 +434,35 @@ def test_stitch_pars(backend):
         0,
         60,
     ]
+
+
+def test_init_pars_sync_fixed_values_scipy(mocker):
+    opt = pyhf.optimize.scipy_optimizer()
+
+    minimizer = mocker.MagicMock()
+    opt._minimize(minimizer, None, [9, 9, 9], fixed_vals=[(0, 1)])
+    assert minimizer.call_args[0] == (None, [1, 9, 9])
+
+
+def test_init_pars_sync_fixed_values_minuit(mocker):
+    opt = pyhf.optimize.minuit_optimizer()
+
+    # patch all we need
+    from pyhf.optimize import opt_minuit
+
+    minimizer = mocker.patch.object(opt_minuit, 'iminuit')
+    opt._get_minimizer(None, [9, 9, 9], [(0, 10)] * 3, fixed_vals=[(0, 1)])
+    assert minimizer.Minuit.from_array_func.call_args[1]['start'] == [1, 9, 9]
+    assert minimizer.Minuit.from_array_func.call_args[1]['fix'] == [True, False, False]
+
+
+def test_step_sizes_fixed_parameters_minuit(mocker):
+    opt = pyhf.optimize.minuit_optimizer()
+
+    # patch all we need
+    from pyhf.optimize import opt_minuit
+
+    minimizer = mocker.patch.object(opt_minuit, 'iminuit')
+    opt._get_minimizer(None, [9, 9, 9], [(0, 10)] * 3, fixed_vals=[(0, 1)])
+    assert minimizer.Minuit.from_array_func.call_args[1]['fix'] == [True, False, False]
+    assert minimizer.Minuit.from_array_func.call_args[1]['error'] == [0.0, 0.01, 0.01]

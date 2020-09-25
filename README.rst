@@ -6,7 +6,7 @@
 pure-python fitting/limit-setting/interval estimation HistFactory-style
 =======================================================================
 
-|GitHub Project| |DOI| |Scikit-HEP|
+|GitHub Project| |DOI| |Scikit-HEP| |NSF Award Number|
 
 |GitHub Actions Status: CI| |GitHub Actions Status: Publish| |Docker
 Automated| |Code Coverage| |Language grade: Python| |CodeFactor| |Code
@@ -38,10 +38,12 @@ Hello World
 .. code:: python
 
    >>> import pyhf
-   >>> pdf = pyhf.simplemodels.hepdata_like(signal_data=[12.0, 11.0], bkg_data=[50.0, 52.0], bkg_uncerts=[3.0, 7.0])
-   >>> CLs_obs, CLs_exp = pyhf.infer.hypotest(1.0, [51, 48] + pdf.config.auxdata, pdf, return_expected=True)
-   >>> print('Observed: {}, Expected: {}'.format(CLs_obs, CLs_exp))
-   Observed: [0.05290116], Expected: [0.06445521]
+   >>> model = pyhf.simplemodels.hepdata_like(signal_data=[12.0, 11.0], bkg_data=[50.0, 52.0], bkg_uncerts=[3.0, 7.0])
+   >>> data = [51, 48] + model.config.auxdata
+   >>> test_mu = 1.0
+   >>> CLs_obs, CLs_exp = pyhf.infer.hypotest(test_mu, data, model, qtilde=True, return_expected=True)
+   >>> print(f"Observed: {CLs_obs}, Expected: {CLs_exp}")
+   Observed: 0.05251497423736956, Expected: 0.06445320535890459
 
 What does it support
 --------------------
@@ -84,12 +86,37 @@ A one bin example
 
 .. code:: python
 
-   nobs = 55, b = 50, db = 7, nom_sig = 10.
+   import pyhf
+   import numpy as np
+   import matplotlib.pyplot as plt
+   import pyhf.contrib.viz.brazil
 
-.. image:: https://raw.githubusercontent.com/scikit-hep/pyhf/master/docs/_static/img/manual_1bin_55_50_7.png
+   pyhf.set_backend("numpy")
+   model = pyhf.simplemodels.hepdata_like(
+       signal_data=[10.0], bkg_data=[50.0], bkg_uncerts=[7.0]
+   )
+   data = [55.0] + model.config.auxdata
+
+   poi_vals = np.linspace(0, 5, 41)
+   results = [
+       pyhf.infer.hypotest(test_poi, data, model, qtilde=True, return_expected_set=True)
+       for test_poi in poi_vals
+   ]
+
+   fig, ax = plt.subplots()
+   fig.set_size_inches(7, 5)
+   ax.set_xlabel(r"$\mu$ (POI)")
+   ax.set_ylabel(r"$\mathrm{CL}_{s}$")
+   pyhf.contrib.viz.brazil.plot_results(ax, poi_vals, results)
+
+**pyhf**
+
+.. image:: https://raw.githubusercontent.com/scikit-hep/pyhf/master/docs/_static/img/README_1bin_example.png
    :alt: manual
    :width: 500
    :align: center
+
+**ROOT**
 
 .. image:: https://raw.githubusercontent.com/scikit-hep/pyhf/master/docs/_static/img/hfh_1bin_55_50_7.png
    :alt: manual
@@ -101,14 +128,38 @@ A two bin example
 
 .. code:: python
 
-   bin 1: nobs = 100, b = 100, db = 15., nom_sig = 30.
-   bin 2: nobs = 145, b = 150, db = 20., nom_sig = 45.
+   import pyhf
+   import numpy as np
+   import matplotlib.pyplot as plt
+   import pyhf.contrib.viz.brazil
+
+   pyhf.set_backend("numpy")
+   model = pyhf.simplemodels.hepdata_like(
+       signal_data=[30.0, 45.0], bkg_data=[100.0, 150.0], bkg_uncerts=[15.0, 20.0]
+   )
+   data = [100.0, 145.0] + model.config.auxdata
+
+   poi_vals = np.linspace(0, 5, 41)
+   results = [
+       pyhf.infer.hypotest(test_poi, data, model, qtilde=True, return_expected_set=True)
+       for test_poi in poi_vals
+   ]
+
+   fig, ax = plt.subplots()
+   fig.set_size_inches(7, 5)
+   ax.set_xlabel(r"$\mu$ (POI)")
+   ax.set_ylabel(r"$\mathrm{CL}_{s}$")
+   pyhf.contrib.viz.brazil.plot_results(ax, poi_vals, results)
 
 
-.. image:: https://raw.githubusercontent.com/scikit-hep/pyhf/master/docs/_static/img/manual_2_bin_100.0_145.0_100.0_150.0_15.0_20.0_30.0_45.0.png
+**pyhf**
+
+.. image:: https://raw.githubusercontent.com/scikit-hep/pyhf/master/docs/_static/img/README_2bin_example.png
    :alt: manual
    :width: 500
    :align: center
+
+**ROOT**
 
 .. image:: https://raw.githubusercontent.com/scikit-hep/pyhf/master/docs/_static/img/hfh_2_bin_100.0_145.0_100.0_150.0_15.0_20.0_30.0_45.0.png
    :alt: manual
@@ -156,6 +207,11 @@ with the ``[pyhf]`` tag, which the ``pyhf`` dev team
 If you believe you have found a bug in ``pyhf``, please report it in the
 `GitHub
 Issues <https://github.com/scikit-hep/pyhf/issues/new?template=Bug-Report.md&labels=bug&title=Bug+Report+:+Title+Here>`__.
+If you're interested in getting updates from the ``pyhf`` dev team and release
+announcements you can join the |pyhf-announcements mailing list|_.
+
+.. |pyhf-announcements mailing list| replace:: ``pyhf-announcements`` mailing list
+.. _pyhf-announcements mailing list: https://groups.google.com/group/pyhf-announcements/subscribe
 
 Citation
 --------
@@ -168,8 +224,8 @@ BibTeX entry for citation of ``pyhf`` is
 
    @software{pyhf,
      author = "{Heinrich, Lukas and Feickert, Matthew and Stark, Giordon}",
-     title = "{pyhf: v0.5.1}",
-     version = {0.5.1},
+     title = "{pyhf: v0.5.2}",
+     version = {0.5.2},
      doi = {10.5281/zenodo.1169739},
      url = {https://github.com/scikit-hep/pyhf},
    }
@@ -200,6 +256,8 @@ and grant `OAC-1450377 <https://www.nsf.gov/awardsearch/showAward?AWD_ID=1450377
    :target: https://doi.org/10.5281/zenodo.1169739
 .. |Scikit-HEP| image:: https://scikit-hep.org/assets/images/Scikit--HEP-Project-blue.svg
    :target: https://scikit-hep.org/
+.. |NSF Award Number| image:: https://img.shields.io/badge/NSF-1836650-blue.svg
+   :target: https://nsf.gov/awardsearch/showAward?AWD_ID=1836650
 .. |GitHub Actions Status: CI| image:: https://github.com/scikit-hep/pyhf/workflows/CI/CD/badge.svg
    :target: https://github.com/scikit-hep/pyhf/actions?query=workflow%3ACI%2FCD+branch%3Amaster
 .. |GitHub Actions Status: Publish| image:: https://github.com/scikit-hep/pyhf/workflows/publish%20distributions/badge.svg

@@ -9,7 +9,7 @@ extras_require = {
     'torch': ['torch~=1.2'],
     'jax': ['jax~=0.1,>0.1.51', 'jaxlib~=0.1,>0.1.33'],
     'xmlio': ['uproot~=3.6'],  # Future proof against uproot4 API changes
-    'minuit': ['iminuit~=1.4,>=1.4.3'],  # Use "name" keyword in MINUIT optimizer
+    'minuit': ['iminuit~=1.4.3'],  # v1.5.0 breaks pyhf for 32b TensorFlow and PyTorch
 }
 extras_require['backends'] = sorted(
     set(
@@ -29,7 +29,7 @@ extras_require['test'] = sorted(
         + extras_require['contrib']
         + extras_require['shellcomplete']
         + [
-            'pytest~=3.5',
+            'pytest~=6.0',
             'pytest-cov>=2.5.1',
             'pytest-mock',
             'pytest-benchmark[histogram]',

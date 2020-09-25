@@ -98,14 +98,18 @@ def backend(request):
     func_name = request._pyfuncitem.name
 
     # skip backends if specified
-    skip_backend = request.node.get_marker('skip_{param}'.format(param=param_id))
+    skip_backend = request.node.get_closest_marker(
+        'skip_{param}'.format(param=param_id)
+    )
     # allow the specific backend to fail if specified
-    fail_backend = request.node.get_marker('fail_{param}'.format(param=param_id))
+    fail_backend = request.node.get_closest_marker(
+        'fail_{param}'.format(param=param_id)
+    )
     # only look at the specific backends
     only_backends = [
         pid
         for pid in param_ids
-        if request.node.get_marker('only_{param}'.format(param=pid))
+        if request.node.get_closest_marker('only_{param}'.format(param=pid))
     ]
 
     if skip_backend and (param_id in only_backends):
@@ -144,11 +148,11 @@ def interpcode(request):
 
 @pytest.fixture(scope='function')
 def datadir(tmpdir, request):
-    '''
+    """
     Fixture responsible for searching a folder with the same name of test
     module and, if available, moving all contents to a temporary directory so
     tests can use them freely.
-    '''
+    """
     # this gets the module name (e.g. /path/to/pyhf/tests/test_schema.py)
     # and then gets the directory by removing the suffix (e.g. /path/to/pyhf/tests/test_schema)
     test_dir = pathlib.Path(request.module.__file__).with_suffix('')

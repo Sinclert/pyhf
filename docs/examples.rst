@@ -13,5 +13,6 @@ Notebooks:
    :glob:
 
    examples/notebooks/*
+   examples/notebooks/learn/*
    examples/notebooks/binderexample/*
    examples/notebooks/learn/neyman/*

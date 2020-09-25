@@ -59,7 +59,7 @@ def test_hypotest_default(tmpdir, hypotest_args):
     kwargs = {}
     result = pyhf.infer.hypotest(*hypotest_args, **kwargs)
     # CLs_obs
-    assert len(list(result)) == 1
+    assert pyhf.tensorlib.shape(result) == ()
     assert isinstance(result, type(tb.astensor(result)))
 
 
@@ -120,11 +120,11 @@ def test_hypotest_return_expected_set(tmpdir, hypotest_args):
 
 
 def test_inferapi_pyhf_independence():
-    '''
+    """
     pyhf.infer should eventually be factored out so it should be
     infependent from pyhf internals. This is testing that
     a much simpler model still can run through pyhf.infer.hypotest
-    '''
+    """
     from pyhf import get_backend
 
     class _NonPyhfConfig(object):
@@ -137,6 +137,9 @@ def test_inferapi_pyhf_independence():
 
         def suggested_bounds(self):
             return [[0.0, 10.0], [0.0, 10.0]]
+
+        def suggested_fixed(self):
+            return [False, False]
 
     class NonPyhfModel(object):
         def __init__(self, spec):
@@ -178,13 +181,13 @@ def test_inferapi_pyhf_independence():
         1.0, model.expected_data(model.config.suggested_init()), model
     )
 
-    assert np.isclose(cls[0], 0.7267836451638846)
+    assert np.isclose(cls, 0.7267836451638846)
 
 
 @pytest.mark.parametrize("qtilde", [True, False])
 def test_calculator_distributions_without_teststatistic(qtilde):
     calc = pyhf.infer.AsymptoticCalculator(
-        [0.0], {}, [1.0], [(0.0, 10.0)], qtilde=qtilde
+        [0.0], {}, [1.0], [(0.0, 10.0)], [False], qtilde=qtilde
     )
     with pytest.raises(RuntimeError):
         calc.distributions(1.0)
