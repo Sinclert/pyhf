@@ -279,6 +279,7 @@ class pytorch_backend(object):
 
         """
         # Interpolation options not yet supported
+        # c.f. https://github.com/pytorch/pytorch/issues/38349
         return torch.quantile(tensor_in, q / 100, dim=axis)
 
     def stack(self, sequence, axis=0):
